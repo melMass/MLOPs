@@ -252,6 +252,7 @@ def run(
     scheduler_type = scheduler_config["type"]
     scheduler = schedulers_lookup.schedulers[scheduler_type].from_config(
         pipe.scheduler.config
+        pipe.scheduler.config or scheduler_config
     )
     pipe.scheduler = scheduler
 
