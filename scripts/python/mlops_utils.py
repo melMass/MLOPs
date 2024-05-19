@@ -8,7 +8,7 @@ from urllib import request
 
 import mlops_image_utils
 import hou
-from hutil.Qt import QtCore, QtGui, QtWidgets
+from hutil.Qt import QtCore, QtWidgets
 
 PIP_FOLDER = hou.text.expandString("$MLOPS_PIP_FOLDER")
 
@@ -89,7 +89,7 @@ def install_mlops_dependencies():
                 "Failed to download get-pip.py , please download get-pip.py manually from https://bootstrap.pypa.io/ , and place in here = "
                 + PIPINSTALLFILE
             )
-        
+
         count += 1
         operation.updateProgress(percentage=count / total)
 
@@ -110,7 +110,7 @@ def install_mlops_dependencies():
         operation.updateProgress(percentage=count / total)
 
         dependencies_dir = os.path.normpath(PIP_FOLDER)
-        
+
         try:
             if os.path.isdir(dependencies_dir):
                 shutil.rmtree(dependencies_dir)
@@ -163,36 +163,45 @@ def is_relevant_parm(kwargs, parmtype):
             return False
     return True
 
+
 def create_tensorboard_root(root):
     logroot = hou.text.expandString(root)
     if not os.path.isdir(logroot):
         os.makedirs(logroot, exist_ok=True)
     return root
 
+
 def log_tensorboard_scalar(root, run, name, step, value):
     from torch.utils.tensorboard import SummaryWriter
+
     logdir = os.path.join(root, run)
     writer = SummaryWriter(log_dir=logdir)
     writer.add_scalar(name, value, step)
     writer.flush()
 
+
 def log_tensorboard_image(root, run, name, step, image):
     from torch.utils.tensorboard import SummaryWriter
+
     logdir = os.path.join(root, run)
     writer = SummaryWriter(log_dir=logdir)
     image = mlops_image_utils.pil_to_colors_numpy_array(image)
     writer.add_image(tag=name, img_tensor=image, global_step=step)
     writer.flush()
 
+
 def log_tensorboard_string(root, run, name, step, string):
     from torch.utils.tensorboard import SummaryWriter
+
     logdir = os.path.join(root, run)
     writer = SummaryWriter(log_dir=logdir)
     writer.add_text(tag=name, text_string=string, global_step=step)
     writer.flush()
 
+
 def log_tensorboard_geometry(root, run, name, step, geometry, render_faces=False):
     from torch.utils.tensorboard import SummaryWriter
+
     logdir = os.path.join(root, run)
     writer = SummaryWriter(log_dir=logdir)
 
@@ -206,7 +215,9 @@ def log_tensorboard_geometry(root, run, name, step, geometry, render_faces=False
 
         if colors is not None:
             color = point.attribValue("Cd")
-            colors.append([int(color[0]*255), int(color[1]*255), int(color[2]*255)])
+            colors.append(
+                [int(color[0] * 255), int(color[1] * 255), int(color[2] * 255)]
+            )
 
     if render_faces:
         faces = []
@@ -222,13 +233,18 @@ def log_tensorboard_geometry(root, run, name, step, geometry, render_faces=False
     if colors:
         colors = [colors]
 
-    writer.add_mesh(tag=name, vertices=[vertices], colors=colors, faces=faces, global_step=step)
+    writer.add_mesh(
+        tag=name, vertices=[vertices], colors=colors, faces=faces, global_step=step
+    )
     writer.flush()
+
 
 def download_gdrive_file_to_folder(url, output):
     import gdown
+
     os.makedirs(os.path.dirname(output), exist_ok=True)
     gdown.download(url, output, quiet=False, use_cookies=False)
+
 
 def download_generic_file(url, output):
     os.makedirs(os.path.dirname(output), exist_ok=True)
@@ -236,8 +252,9 @@ def download_generic_file(url, output):
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with request.urlopen(url, context=context) as response:
-        with open(output, 'wb') as file:
+        with open(output, "wb") as file:
             file.write(response.read())
+
 
 def parse_args_from_node_parms(args, node):
     type_mapping = {
@@ -245,7 +262,7 @@ def parse_args_from_node_parms(args, node):
         str: lambda _parm: _parm.evalAsString(),
         float: lambda _parm: _parm.evalAsFloat(),
         bool: lambda _parm: bool(_parm.evalAsInt()),
-        type(None): lambda _parm: _parm.evalAsString()
+        type(None): lambda _parm: _parm.evalAsString(),
     }
 
     for parm_name, default_value in vars(args).items():
@@ -256,6 +273,7 @@ def parse_args_from_node_parms(args, node):
             args.__dict__[parm_name] = parse_func(arg_parm)
 
     return args
+
 
 def return_downloaded_checkpoints(
     root="$MLOPS_MODELS", subfolder="", replace_sign="-_-"
@@ -310,12 +328,23 @@ def check_mlops_version():
 
 
 def ensure_huggingface_model_local(
-    model_name, model_path, cache_only=False, model_type="stablediffusion/StableDiffusionPipeline"
+    model_name,
+    model_path,
+    cache_only=False,
+    model_type="stablediffusion/StableDiffusionPipeline",
 ):
     from sdpipeline import pipelines_lookup
     from diffusers.schedulers.scheduling_utils import SCHEDULER_CONFIG_NAME
     from diffusers.utils import CONFIG_NAME, ONNX_WEIGHTS_NAME, WEIGHTS_NAME
     from huggingface_hub import snapshot_download
+
+    # TODO: replace all os.path stuff with pathlib...
+    from pathlib import Path
+
+    model_name_path = Path(model_name)
+    if model_name_path.is_file():
+        if model_name_path.suffix in [".safetensors", ".pth"]:  # , ".ckpt"]:
+            return model_name_path.as_posix()
 
     path = hou.text.expandString(
         os.path.join(model_path, model_name.replace("/", "-_-"))
@@ -384,8 +413,8 @@ def ensure_huggingface_model_local(
     )
     return path.replace("\\", "/")
 
-def move_all(src, dst):
 
+def move_all(src, dst):
     if not os.path.exists(dst):
         os.makedirs(dst)
 
@@ -397,11 +426,20 @@ def move_all(src, dst):
             shutil.move(source_item, dst)
 
 
-def pip_install(dependencies, dep_is_txt=False, upgrade=False, verbose=False, constraints_file=None):
+def pip_install(
+    dependencies, dep_is_txt=False, upgrade=False, verbose=False, constraints_file=None
+):
     flags = 0
     if os.name == "nt":
         flags = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
-    cmd = ["hython", "-m", "pip", "install", "--target", os.path.join(PIP_FOLDER, "temp")]
+    cmd = [
+        "hython",
+        "-m",
+        "pip",
+        "install",
+        "--target",
+        os.path.join(PIP_FOLDER, "temp"),
+    ]
 
     if upgrade:
         cmd.append("--upgrade")
@@ -489,7 +527,9 @@ class MLOPSCheckpointDownloader(QtWidgets.QDialog):
 
         layout_type = QtWidgets.QHBoxLayout()
         model_type_label = QtWidgets.QLabel("Model Type: ")
-        self.model_type_field = QtWidgets.QLineEdit("stablediffusion/StableDiffusionPipeline")
+        self.model_type_field = QtWidgets.QLineEdit(
+            "stablediffusion/StableDiffusionPipeline"
+        )
 
         layout_model.addWidget(model_path_label)
         layout_model.addWidget(self.model_path_field)
@@ -699,7 +739,7 @@ class MLOPSPipInstall(QtWidgets.QDialog):
             "Pip Install", "Installing Dependencies", open_interrupt_dialog=True
         ) as operation:
             operation.updateLongProgress(
-                percentage=-1.0, long_op_status=f"Installing dependencies"
+                percentage=-1.0, long_op_status="Installing dependencies"
             )
             pip_install(result, upgrade=True, verbose=True)
 

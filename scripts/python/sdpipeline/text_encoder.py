@@ -1,10 +1,8 @@
 import logging
 
-import numpy
-import torch
 from compel import Compel
-from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers import DiffusionPipeline
+
 logging.disable(logging.WARNING)
 
 
@@ -43,16 +41,28 @@ def run(
         b = remainder[0] if remainder else a
         return a, b
 
-    pipeline = DiffusionPipeline.from_pretrained(model, local_files_only=local_cache_only)
+    pipeline = DiffusionPipeline.from_pretrained(
+        model, local_files_only=local_cache_only, safety_checker=None
+    )
     XL = False
     try:
-        compel_proc = Compel(requires_pooled=[False, True], tokenizer=[pipeline.tokenizer, pipeline.tokenizer_2], text_encoder=[pipeline.text_encoder, pipeline.text_encoder_2])
+        compel_proc = Compel(
+            requires_pooled=[False, True],
+            tokenizer=[pipeline.tokenizer, pipeline.tokenizer_2],
+            text_encoder=[pipeline.text_encoder, pipeline.text_encoder_2],
+        )
         XL = True
     except:
-        compel_proc = Compel(tokenizer=pipeline.tokenizer, text_encoder=pipeline.text_encoder)
+        compel_proc = Compel(
+            tokenizer=pipeline.tokenizer, text_encoder=pipeline.text_encoder
+        )
 
-    conditional_embeddings, conditional_embeddings_pooled = unpack_values(compel_proc(input_prompt_positive))
-    unconditional_embeddings, unconditional_embeddings_pooled = unpack_values(compel_proc(input_prompt_negative))
+    conditional_embeddings, conditional_embeddings_pooled = unpack_values(
+        compel_proc(input_prompt_positive)
+    )
+    unconditional_embeddings, unconditional_embeddings_pooled = unpack_values(
+        compel_proc(input_prompt_negative)
+    )
 
     embeddings_shape = list(unconditional_embeddings.shape)
     pooled_embeddings_shape = list(unconditional_embeddings_pooled.shape)
@@ -61,10 +71,14 @@ def run(
 
     unconditional_embeddings = unconditional_embeddings.flatten().tolist()
     unconditional_embeddings_pooled = unconditional_embeddings_pooled.flatten().tolist()
-    unconditional_embeddings_pooled.extend([0] * abs(len(unconditional_embeddings)-len(unconditional_embeddings_pooled)))
+    unconditional_embeddings_pooled.extend(
+        [0] * abs(len(unconditional_embeddings) - len(unconditional_embeddings_pooled))
+    )
     conditional_embeddings = conditional_embeddings.flatten().tolist()
     conditional_embeddings_pooled = conditional_embeddings_pooled.flatten().tolist()
-    conditional_embeddings_pooled.extend([0] * abs(len(conditional_embeddings)-len(conditional_embeddings_pooled)))
+    conditional_embeddings_pooled.extend(
+        [0] * abs(len(conditional_embeddings) - len(conditional_embeddings_pooled))
+    )
 
     embeddings = {}
     embeddings["unconditional_embedding"] = unconditional_embeddings

@@ -6,7 +6,7 @@ def run(text_prompt, model, local_cache_only):
         tokenizer = CLIPTokenizer.from_pretrained(
             model, subfolder="tokenizer", local_files_only=local_cache_only
         )
-    except OSError as error:
+    except OSError:
         tokenizer = CLIPTokenizer.from_pretrained(
             model, local_files_only=local_cache_only
         )
