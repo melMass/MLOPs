@@ -92,7 +92,7 @@ def run(
         pipeline_call_kwargs["controlnet_conditioning_scale"] = input_controlnet_scales
         pipeline_kwargs["controlnet"] = input_controlnet_models
         pipeline_type = f"StableDiffusion{pipeline_modifier}ControlNetInpaintPipeline"
-        
+
         if input_scheduler["numpy_image"] is None:
             pipeline_call_kwargs["image"] = input_controlnet_images
             pipeline_type = f"StableDiffusion{pipeline_modifier}ControlNetPipeline"
@@ -163,7 +163,6 @@ def run(
     pipe = pipelines_lookup.pipelines[pipeline_type].from_pretrained(model_path, torch_dtype=dtype, use_safetensors=True, **pipeline_kwargs)
     pipe.to(device)
     pipe.set_progress_bar_config(disable=True)
-
 
     # Tiling Support (Have to hijack pipeline to support this currently)
     if tiling != "none":
@@ -250,12 +249,15 @@ def run(
         lora_kwargs = {"scale": lora_weights["weight"]}
 
     from functools import partial
-    def progress_bar(step, timestep, latents, operation):
-        operation.updateProgress(step / inference_steps)
+
+    def progress_bar(pipe, step_index, timestep, callback_kwargs, operation=None):
+        if operation:
+            operation.updateProgress(step_index / inference_steps)
+
+        return callback_kwargs
 
     # Inference
     pipe.enable_model_cpu_offload()
-
 
     # Delete kwargs not used by pipeline
     _keep = inspect.signature(
@@ -280,7 +282,7 @@ def run(
             output_type="pil",
             generator=torch.manual_seed(seed),
             cross_attention_kwargs=lora_kwargs,
-            callback=_progress_bar,
+            callback_on_step_end=_progress_bar,
             **pipeline_call_kwargs,
         ).images[0]
 
