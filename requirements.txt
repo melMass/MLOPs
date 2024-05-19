@@ -2,8 +2,9 @@ Cython==3.0.8
 setuptools==69.0.3
 openai==1.11.1
 omegaconf==2.3.0
-transformers==4.37.2
-accelerate==0.26.1
+peft==0.11.1
+transformers==4.41.0
+accelerate==0.30.1
 geopandas==0.14.3
 scikit-learn==1.4.0
 scipy==1.12.0
