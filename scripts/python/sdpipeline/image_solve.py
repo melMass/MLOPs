@@ -5,6 +5,7 @@ import torch
 from diffusers import ControlNetModel, UNet2DConditionModel
 from diffusers.pipelines.controlnet.multicontrolnet import MultiControlNetModel
 from tqdm.auto import tqdm
+from pathlib import Path
 
 from . import schedulers_lookup
 
@@ -127,11 +128,16 @@ def run(
                 numpy.array([input_colors])
             ).to(device=torch_device)
             controlnet_conditioning_image = controlnet_conditioning_image.to(dtype_unet)
-            controlnet = ControlNetModel.from_pretrained(
-                controlnetmodel,
-                local_files_only=local_cache_only,
-                torch_dtype=dtype_unet,
-            )
+            if Path(controlnetmodel).is_file():
+                controlnet = ControlNetModel.from_single_file(
+                    controlnetmodel, torch_dtype=dtype_unet
+                )
+            else:
+                controlnet = ControlNetModel.from_pretrained(
+                    controlnetmodel,
+                    local_files_only=local_cache_only,
+                    torch_dtype=dtype_unet,
+                )
             controlnet.to(torch_device)
             controlnet_model.append(controlnet)
             controlnet_image.append(controlnet_conditioning_image)

@@ -1,3 +1,4 @@
+from pathlib import Path
 import diffusers
 from importlib import reload
 
@@ -77,12 +78,16 @@ def run(
             controlnet_conditioning_image = torch.from_numpy(
                 numpy.array([input_colors])
             )
-
-            controlnet = diffusers.ControlNetModel.from_pretrained(
-                controlnetmodel,
-                local_files_only=cache_only,
-                torch_dtype=dtype,
-            )
+            if Path(controlnetmodel).is_file():
+                controlnet = diffusers.ControlNetModel.from_single_file(
+                    controlnetmodel, torch_dtype=dtype
+                )
+            else:
+                controlnet = diffusers.ControlNetModel.from_pretrained(
+                    controlnetmodel,
+                    local_files_only=cache_only,
+                    torch_dtype=dtype,
+                )
 
             input_controlnet_models.append(controlnet)
             input_controlnet_images.append(controlnet_conditioning_image)
@@ -160,7 +165,21 @@ def run(
     if pipeline["type"] == "custom":
         pipeline_type = pipeline["name"]
 
-    pipe = pipelines_lookup.pipelines[pipeline_type].from_pretrained(model_path, torch_dtype=dtype, use_safetensors=True, **pipeline_kwargs)
+    if Path(model_path).is_file():
+        pipe = pipelines_lookup.pipelines[pipeline_type].from_single_file(
+            model_path,
+            torch_dtype=dtype,
+            use_safetensors=True,
+            **pipeline_kwargs,
+        )
+    else:
+        pipe = pipelines_lookup.pipelines[pipeline_type].from_pretrained(
+            model_path,
+            torch_dtype=dtype,
+            use_safetensors=True,
+            safety_checker=None,
+            **pipeline_kwargs,
+        )
     pipe.to(device)
     pipe.set_progress_bar_config(disable=True)
 
