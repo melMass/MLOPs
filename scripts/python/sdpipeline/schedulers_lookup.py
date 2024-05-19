@@ -11,6 +11,8 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     LMSDiscreteScheduler,
     UniPCMultistepScheduler,
+    LCMScheduler,
+    EDMDPMSolverMultistepScheduler,
 )
 
 schedulers = {
@@ -27,6 +29,8 @@ schedulers = {
     "DPM2 Karras": KDPM2DiscreteScheduler,
     "DPM2 a Karras": KDPM2AncestralDiscreteScheduler,
     "DPM++ 2S": DPMSolverSinglestepScheduler,
+    "LCM": LCMScheduler,
+    "EDMDPM": EDMDPMSolverMultistepScheduler,
     # No argument to "turn" the following into Karras version yet
     # "DPM++ 2S Karras" : DPMSolverSinglestepScheduler(use_karras_sigmas=True),
     "DPM++ 2M": DPMSolverMultistepScheduler,
